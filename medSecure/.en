@@ -1,0 +1,119 @@
+# =============================================================================
+# MEDSECURE - Variables de Entorno
+# =============================================================================
+# Copia este archivo como .env y completa los valores.
+#  sw4: sw4 export $(cat .env | xargs)  para cargar en desarrollo
+
+# =============================================================================
+# SERVER
+# =============================================================================
+NODE_ENV=development            # development | production | test
+PORT=4000                       # Puerto del servidor Express
+HOST=0.0.0.0                    # Host al que bindea el servidor
+
+# =============================================================================
+# BASE DE DATOS - PostgreSQL
+# =============================================================================
+# Genera una contraseña segura: openssl rand -base64 32
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=medsecure
+DB_USER=medsecure_admin
+DB_PASSWORD=                          # Mín. 32 caracteres, alfanumérica
+
+# Pool de conexiones (ajusta según recursos)
+DB_POOL_MIN=2
+DB_POOL_MAX=10
+
+# =============================================================================
+# REDIS - Sesiones, caché, blacklist de tokens
+# =============================================================================
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=                       # Opcional, usar en producción
+
+# =============================================================================
+# JWT - Access Tokens (RS256)
+# =============================================================================
+# Genera un par de llaves RSA de 4096 bits:
+#   openssl genrsa -out private.pem 4096
+#   openssl rsa -in private.pem -pubout -out public.pem
+# Luego codifica en base64 para ponerlo aquí:
+#   cat private.pem | base64 -w0
+JWT_PRIVATE_KEY_B64=                  # Clave privada RSA en base64
+JWT_PUBLIC_KEY_B64=                   # Clave pública RSA en base64
+JWT_ACCESS_EXPIRES_IN=15m             # Tiempo de expiración access token
+JWT_REFRESH_EXPIRES_IN=7d             # Tiempo de expiración refresh token
+JWT_ISSUER=MedSecure                  # Emisor del JWT
+JWT_AUDIENCE=MedSecure-API            # Audiencia del JWT
+
+# =============================================================================
+# TOTP / MFA - 2FA
+# =============================================================================
+TOTP_ISSUER=MedSecure                 # Nombre que aparece en Google Authenticator
+TOTP_ENCRYPTION_KEY=                  # Clave para cifrar secrets TOTP en BD (32 hex chars: openssl rand -hex 32)
+
+# =============================================================================
+# CIFRADO PHI - AES-256-GCM (Artículo HIPAA: 164.312(a)(2)(iv))
+# =============================================================================
+# Los campos PHI (Protected Health Information) se cifran con esta clave.
+# IMPORTANTE: Si pierdes esta clave, NO podrás descifrar datos clínicos.
+# Genera con: openssl rand -hex 32
+PHI_MASTER_KEY=                       # 64 caracteres hex (32 bytes = AES-256)
+
+# =============================================================================
+# CORS - Orígenes permitidos
+# =============================================================================
+# Lista separada por comas de orígenes permitidos para CORS
+CORS_WHITELIST=http://localhost:5173,http://localhost:3000
+
+# =============================================================================
+# CSRF - Protección contra Cross-Site Request Forgery
+# =============================================================================
+CSRF_SECRET=                          # Genera con: openssl rand -hex 32
+
+# =============================================================================
+# RATE LIMITING - Límites por IP
+# =============================================================================
+RATE_LIMIT_WINDOW_MS=900000           # Ventana de 15 minutos en ms
+RATE_LIMIT_MAX=100                    # Máximo de requests por ventana global
+RATE_LIMIT_AUTH_MAX=5                 # Máximo de requests a /auth por ventana
+
+# =============================================================================
+# ACCOUNT LOCKOUT - Bloqueo de cuenta
+# =============================================================================
+LOCKOUT_THRESHOLD=5                   # Intentos fallidos antes del bloqueo
+LOCKOUT_DURATION_MINUTES=30           # Duración del bloqueo en minutos
+
+# =============================================================================
+# INTRUSION DETECTION - IDs
+# =============================================================================
+ID_MAX_RECORDS_ACCESS=50              # Máx. expedientes accedidos en 1 hora antes de alertar
+ID_TIME_WINDOW_HOURS=1                # Ventana de tiempo para detección
+
+# =============================================================================
+# LOGGING - Winston
+# =============================================================================
+LOG_LEVEL=info                        # error | warn | info | http | verbose | debug | audit
+LOG_DIR=./logs                        # Directorio donde se guardan los logs
+LOG_RETENTION_DAYS=90                 # Días de retención de logs
+
+# =============================================================================
+# BACKUP - PostgreSQL cifrado
+# =============================================================================
+BACKUP_DIR=./backups
+BACKUP_ENCRYPTION_KEY=                # Clave AES para cifrar backups (openssl rand -hex 32)
+BACKUP_RETENTION_DAYS=30
+
+# =============================================================================
+# HTTPS - Para producción, forzar HTTPS
+# =============================================================================
+HTTPS_ENABLED=false                   # Forzar redirección HTTP → HTTPS
+HTTPS_CERT_PATH=                      # Ruta al certificado SSL
+HTTPS_KEY_PATH=                       # Ruta a la llave privada SSL
+
+# =============================================================================
+# SEGURIDAD ADICIONAL
+# =============================================================================
+BCRYPT_SALT_ROUNDS=12                 # Costo de bcrypt (mín. 12, recomendado 12-14)
+SESSION_SECRET=                       # Secreto para firmar cookies de sesión (openssl rand -hex 64)

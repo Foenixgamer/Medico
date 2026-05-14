@@ -1,0 +1,18 @@
+# =============================================================================
+# MedSecure - Configuración de cron para backups automáticos
+# Capa 8: Automatización de backups
+# =============================================================================
+#
+# Copia esta línea a tu crontab (crontab -e) para ejecutar el backup:
+#
+# Diario a las 2:00 AM
+# 0 2 * * * /path/to/medSecure/scripts/backup.sh >> /var/log/medsecure-backup.log 2>&1
+#
+# Cada 6 horas (producción crítica)
+# 0 */6 * * * /path/to/medSecure/scripts/backup.sh >> /var/log/medsecure-backup.log 2>&1
+#
+# Notas:
+# 1. Asegúrate de que las variables de entorno estén disponibles (usa env_file o export)
+# 2. Verifica que openssl y pg_dump estén instalados
+# 3. El directorio de backups debe tener permisos restringidos (chmod 600)
+# 4. Prueba el script manualmente primero: bash scripts/backup.sh

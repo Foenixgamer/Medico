@@ -1,0 +1,119 @@
+# =============================================================================
+# MedSecure - docker-compose.yml
+# Capa 9: Red Segmentada - Separación de redes por capa
+# =============================================================================
+# Arquitectura de redes:
+#   frontend-net → backend-net → db-net
+#   La BD y Redis solo son accesibles desde backend-net
+#   El frontend solo se comunica con el backend
+# =============================================================================
+
+version: '3.9'
+
+networks:
+  frontend-net:
+    driver: bridge
+    internal: false  # Accesible desde el host para desarrollo
+  backend-net:
+    driver: bridge
+    internal: true   # Aislada del exterior
+  db-net:
+    driver: bridge
+    internal: true   # Totalmente aislada
+
+services:
+  # ===== POSTGRESQL =====
+  postgres:
+    image: postgres:16-alpine
+    container_name: medsecure-db
+    restart: unless-stopped
+    networks:
+      - db-net
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    environment:
+      POSTGRES_USER: ${DB_USER:-medsecure_admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-medsecure}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-medsecure_admin} -d ${DB_NAME:-medsecure}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===== REDIS =====
+  redis:
+    image: redis:7-alpine
+    container_name: medsecure-redis
+    restart: unless-stopped
+    networks:
+      - backend-net
+    command: redis-server --appendonly yes --appendfsync everysec
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  # ===== BACKEND (API) =====
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: ${NODE_ENV:-development}
+    container_name: medsecure-backend
+    restart: unless-stopped
+    networks:
+      - frontend-net
+      - backend-net
+      - db-net
+    ports:
+      - "${PORT:-4000}:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    volumes:
+      - ./backend/src:/app/src:ro
+      - ./backend/package.json:/app/package.json:ro
+      - backend-logs:/app/logs
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      WAIT_FOR_DB: "true"
+    # Capa 10: Hardening - usuario no-root
+    # (definido en el Dockerfile)
+
+  # ===== FRONTEND =====
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: ${NODE_ENV:-development}
+    container_name: medsecure-frontend
+    restart: unless-stopped
+    networks:
+      - frontend-net
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    env_file:
+      - .env
+    volumes:
+      - ./frontend/src:/app/src:ro
+      - ./frontend/package.json:/app/package.json:ro
+
+volumes:
+  postgres-data:
+  redis-data:
+  backend-logs:
